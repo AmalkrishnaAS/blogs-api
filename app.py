@@ -12,11 +12,11 @@ from passlib.hash import sha256_crypt
 import jwt
 from  functools import wraps
 import boto3
-from dotenv import dotenv_values
+
 from werkzeug.utils import secure_filename
 
 
-config=dotenv_values('.env')
+
 
 
 #fix cors error
