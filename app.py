@@ -182,7 +182,7 @@ def create_blog(current_user):
     db.session.commit()
     
     
-    return response
+    return blog_schema.jsonify(new_blog)
 
 
 #get all blogs
