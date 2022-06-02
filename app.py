@@ -1,9 +1,10 @@
 #initialise flask
+import re
 from urllib import response
 from flask import Flask,jsonify,request,make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
-from flask_cors import CORS,cross_origin
+from flask_cors import CORS
 import os
 import uuid
 from datetime import datetime,timedelta
@@ -26,15 +27,9 @@ config=dotenv_values('.env')
 app = Flask(__name__)
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
-CORS(app,supports_credentials=True)
-cors=CORS(app,resources={
-    r"/*":{
-        "origins":"*",
-        "methods":"GET,HEAD,PUT,PATCH,POST,DELETE",
-    }
-    
-})
-app.config['CORS_HEADERS']='Content-Type'
+CORS(app)
+
+#cors for cookies
 
 
 
@@ -131,7 +126,6 @@ def token_required(f):
 
 #create user
 @app.route('/user/register', methods=["POST"])
-@cross_origin(origin='*',headers=['Content-Type','x-access-token'],supports_credentials=True)
 
 def register_user():
     
@@ -153,7 +147,7 @@ def register_user():
 
 #get all users (for testing)
 @app.route('/user/all', methods=["GET"])
-@cross_origin(origin='*',headers=['Content-Type'])
+@token_required
 
 def get_all_users():
     all_users=User.query.all()
@@ -162,7 +156,7 @@ def get_all_users():
 
 #login user
 @app.route('/user/login', methods=["POST"])
-@cross_origin(origin='*',headers=['Content-Type'])
+
 
 def login_user():
     data=request.get_json()
@@ -178,7 +172,6 @@ def login_user():
 #create blog
 @app.route('/blog/create', methods=["POST"])
 @token_required
-@cross_origin(origin='*',headers=['Content-Type','x-access-token'], supports_credentials=True)
 def create_blog(current_user):
     data=request.get_json()
     Author=current_user.name
@@ -187,19 +180,14 @@ def create_blog(current_user):
     new_blog=Blog(title=data['title'],content=data['content'],user_id=current_user.id,created_at=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),updated_at=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),Author=Author,Authur_pic=Authur_pic,thumbnail=data['thumbnail'])
     db.session.add(new_blog)
     db.session.commit()
-    response=blog_schema.jsonify(new_blog)
-    response.headers.add('Access-Control-Allow-Origin','*')
-    response.headers.add('Access-Control-Allow-Headers','Content-Type,Authorization','x-access-token')
-    response.headers.add('Access-Control-Allow-Methods','GET,PUT,POST,DELETE,OPTIONS')
-    response.headers.add('Access-Control-Allow-Credentials','true')
-    response.headers.add('Access-Control-Max-Age','1728000')
+    
     
     return response
 
 
 #get all blogs
 @app.route('/blog/all', methods=["GET"])
-@cross_origin(origin='*',headers=['Content-Type'])
+
 def get_all_blogs():
     all_blogs=Blog.query.all()
     result=blogs_schema.dump(all_blogs)
@@ -208,7 +196,6 @@ def get_all_blogs():
 
 #get single blog
 @app.route('/blog/<id>', methods=["GET"])
-@cross_origin()
 def get_single_blog(id):
     blog=Blog.query.filter_by(id=id).first()
     return blog_schema.jsonify(blog)
@@ -216,9 +203,7 @@ def get_single_blog(id):
 
 #get all blogs by user using token
 @app.route('/blog/all_by_user', methods=["GET"])
-@cross_origin(origin='*',headers=['Content-Type','x-access-token'])
 @token_required
-@cross_origin()
 def get_all_blogs_by_user(current_user):
     all_blogs=Blog.query.filter_by(user_id=current_user.id).all()
     result=blogs_schema.dump(all_blogs)
@@ -227,7 +212,6 @@ def get_all_blogs_by_user(current_user):
 #update blog
 @app.route('/blog/update/<id>', methods=["PUT"])
 @token_required
-@cross_origin(origin='*',headers=['Content-Type','x-access-token'])
 def update_blog(current_user,id):
     data=request.get_json()
     blog=Blog.query.filter_by(id=id).first()
@@ -241,7 +225,6 @@ def update_blog(current_user,id):
 #delete blog
 @app.route('/blog/delete/<id>', methods=["DELETE"])
 @token_required
-@cross_origin(origin='*',headers=['Content-Type','x-access-token'])
 def delete_blog(current_user,id):
     blog=Blog.query.filter_by(id=id).first()
     db.session.delete(blog)
@@ -252,7 +235,6 @@ def delete_blog(current_user,id):
 #create comment
 @app.route('/comment/create/<id>', methods=["POST"])
 @token_required
-@cross_origin(origin='*',headers=['Content-Type','x-access-token'])
 def create_comment(current_user,id):
     data=request.get_json()
     comment=Comment(comment=data['comment'],blog_id=id,user=current_user.name,created_at=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"))
@@ -262,7 +244,6 @@ def create_comment(current_user,id):
 
 #get all comments
 @app.route('/comment/all/<id>', methods=["GET"])
-@cross_origin(origin='*',headers=['Content-Type'])
 def get_all_comments(id):
     data=Comment.query.filter_by(blog_id=id).all()
     return comments_schema.jsonify(data)
