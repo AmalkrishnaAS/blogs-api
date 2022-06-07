@@ -42,7 +42,7 @@ app.config['CORS_HEADERS'] = ['Content-Type','x-access-token']
 
 
 basedir=os.path.abspath(os.path.dirname(__file__))
-if ENV=='development':
+if ENV=='production':
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'+os.path.join(basedir,'db.sqlite')
 else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://mvjctpxhhwxsoo:2d521b788593006a32d039d5641e43fa155539c98a3af06143421309b4dc7a7d@ec2-3-211-221-185.compute-1.amazonaws.com:5432/d5a1bv4l2p3kd3'
