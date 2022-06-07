@@ -16,7 +16,7 @@ import boto3
 
 from werkzeug.utils import secure_filename
 
-ENV='development'
+ENV='production'
 
 
 
