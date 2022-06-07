@@ -178,7 +178,7 @@ def login_user():
     if not user:
         return jsonify({"message":"User does not exist"})
     if user and sha256_crypt.verify(data['password'],user.password):
-        token=jwt.encode({'public_id':user.public_id,'exp':datetime.utcnow()+timedelta(minutes=120)},app.config['SECRET_KEY'])
+        token=jwt.encode({'public_id':user.public_id,'exp':datetime.now()+timedelta(minutes=120)},app.config['SECRET_KEY'])
         return jsonify({'token':token.decode('UTF-8')})
     return jsonify({"message":"Invalid credentials"})
 
@@ -191,9 +191,9 @@ def create_blog(current_user):
     Author=current_user.name
     Authur_pic=current_user.avatar
     #get current indian time as string
-    date=datetime.utcnow().strftime("%d-%m-%Y %H:%M:%S")  
+    date=datetime.now().strftime("%d-%m-%Y %H:%M:%S")  
     
-    new_blog=Blog(title=data['title'],content=data['content'],user_id=current_user.id,created_at=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),updated_at=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),Author=Author,Authur_pic=Authur_pic,thumbnail=data['thumbnail'],publish=data['publish'])
+    new_blog=Blog(title=data['title'],content=data['content'],user_id=current_user.id,created_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),updated_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),Author=Author,Authur_pic=Authur_pic,thumbnail=data['thumbnail'],publish=data['publish'])
     db.session.add(new_blog)
     db.session.commit()
     
@@ -240,7 +240,7 @@ def update_blog(current_user,id):
         blog=Blog.query.filter_by(id=id).first()
         blog.title=data['title']
         blog.content=data['content']
-        blog.updated_at=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        blog.updated_at=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         blog.thumbnail=data['thumbnail']
         blog.publish=data['publish']
         db.session.commit()
@@ -268,7 +268,7 @@ def delete_blog(current_user,id):
 @token_required
 def create_comment(current_user,id):
     data=request.get_json()
-    comment=Comment(comment=data['comment'],blog_id=id,user=current_user.name,created_at=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"))
+    comment=Comment(comment=data['comment'],blog_id=id,user=current_user.name,created_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     db.session.add(comment)
     db.session.commit()
     return comment_schema.jsonify(comment)
