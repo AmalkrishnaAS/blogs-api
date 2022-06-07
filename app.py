@@ -1,4 +1,5 @@
 #initialise flask
+from email import header
 import re
 from urllib import response
 from flask import Flask,jsonify,request,make_response
@@ -14,6 +15,8 @@ from  functools import wraps
 import boto3
 
 from werkzeug.utils import secure_filename
+
+ENV='development'
 
 
 
@@ -37,8 +40,12 @@ app.config['CORS_HEADERS'] = ['Content-Type','x-access-token']
 
 
 
+
 basedir=os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'+os.path.join(basedir,'db.sqlite')
+if ENV=='development':
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'+os.path.join(basedir,'db.sqlite')
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://mvjctpxhhwxsoo:2d521b788593006a32d039d5641e43fa155539c98a3af06143421309b4dc7a7d@ec2-3-211-221-185.compute-1.amazonaws.com:5432/d5a1bv4l2p3kd3'
 app.config['SECRET_KEY'] = 'thisissecret'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -72,6 +79,7 @@ class Blog(db.Model):
     thumbnail=db.Column(db.String)
     Author=db.Column(db.String,default=None)
     Authur_pic=db.Column(db.String,default=None)
+    publish=db.Column(db.Boolean,default=False)
     
     
     #comment schema
@@ -81,6 +89,7 @@ class Comment(db.Model):
     blog_id=db.Column(db.Integer, nullable=False)
     created_at=db.Column(db.String, nullable=False)
     user=db.Column(db.String,default=None)
+   
    
         
 #comment schema
@@ -95,7 +104,7 @@ class CommentSchema(ma.Schema):
 #blog schema
 class BlogSchema(ma.Schema):
     class Meta:
-        fields = ('id','title','content','user_id','created_at','updated_at','thumbnail','Author','Authur_pic')
+        fields = ('id','title','content','user_id','created_at','updated_at','thumbnail','Author','Authur_pic','publish')
 
 #single user schema object
 user_schema = UserSchema()
@@ -152,7 +161,6 @@ def register_user():
 #get all users (for testing)
 @app.route('/user/all', methods=["GET"])
 @cross_origin(supports_credentials=True,headers=['Content-Type'])
-@token_required
 
 
 def get_all_users():
@@ -186,7 +194,7 @@ def create_blog(current_user):
     #get current indian time as string
     date=datetime.now().strftime("%d-%m-%Y %H:%M:%S")  
     
-    new_blog=Blog(title=data['title'],content=data['content'],user_id=current_user.id,created_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),updated_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),Author=Author,Authur_pic=Authur_pic,thumbnail=data['thumbnail'])
+    new_blog=Blog(title=data['title'],content=data['content'],user_id=current_user.id,created_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),updated_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),Author=Author,Authur_pic=Authur_pic,thumbnail=data['thumbnail'],publish=data['publish'])
     db.session.add(new_blog)
     db.session.commit()
     
@@ -226,21 +234,29 @@ def get_all_blogs_by_user(current_user):
 @cross_origin(supports_credentials=True,headers=['Content-Type','x-access-token'])
 @token_required
 def update_blog(current_user,id):
-    data=request.get_json()
-    blog=Blog.query.filter_by(id=id).first()
-    blog.title=data['title']
-    blog.content=data['content']
-    blog.updated_at=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    blog.thumbnail=data['thumbnail']
-    db.session.commit()
-    return blog_schema.jsonify(blog)
+    
+    
+    if current_user.id == Blog.query.filter_by(id=id).first().user_id:
+        data=request.get_json()
+        blog=Blog.query.filter_by(id=id).first()
+        blog.title=data['title']
+        blog.content=data['content']
+        blog.updated_at=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        blog.thumbnail=data['thumbnail']
+        blog.publish=data['publish']
+        db.session.commit()
+        return blog_schema.jsonify(blog)
+    return jsonify({"message":"Unauthorized access"}) 
 
 #delete blog
 @app.route('/blog/delete/<id>', methods=["DELETE"])
 @cross_origin(supports_credentials=True,headers=['Content-Type','x-access-token'])
 @token_required
 
+
 def delete_blog(current_user,id):
+    if current_user.id!=Blog.query.filter_by(id=id).first().user_id:
+        return make_response("Unauthorized access",401,{"Auth_Status":"invalid"})
     blog=Blog.query.filter_by(id=id).first()
     db.session.delete(blog)
     db.session.commit()
@@ -264,24 +280,12 @@ def get_all_comments(id):
     data=Comment.query.filter_by(blog_id=id).all()
     return comments_schema.jsonify(data)
 
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
-
+#get current user
+@app.route('/user/current', methods=["GET"])
+@cross_origin(supports_credentials=True,headers=['Content-Type','x-access-token'])
+@token_required
+def get_current_user(current_user):
+    return user_schema.jsonify(current_user)
 
 
 if __name__ == '__main__':
