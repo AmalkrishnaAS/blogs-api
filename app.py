@@ -201,7 +201,7 @@ def create_blog(current_user):
     return blog_schema.jsonify(new_blog)
 
 
-#get all blogs
+#get all blog
 @app.route('/blog/all', methods=["GET"])
 @cross_origin(supports_credentials=True,headers=['Content-Type'])
 
