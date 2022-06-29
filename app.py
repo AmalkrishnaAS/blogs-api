@@ -14,8 +14,10 @@ import jwt
 from  functools import wraps
 import boto3
 import scraper
+
 from werkzeug.utils import secure_filename
 
+ENV='development'
 
 
 
@@ -34,7 +36,6 @@ cors=CORS(app,resources={r"/*": {"origins": "*"}})
 app.config['CORS_HEADERS'] = ['Content-Type','x-access-token']
 
 
-
 #cors for cookies
 
 
@@ -43,10 +44,11 @@ app.config['CORS_HEADERS'] = ['Content-Type','x-access-token']
 
 basedir=os.path.abspath(os.path.dirname(__file__))
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
 
 app.config['SECRET_KEY'] = 'thisissecret'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 
 
 
@@ -286,13 +288,11 @@ def get_all_comments(id):
 def get_current_user(current_user):
     return user_schema.jsonify(current_user)
 
+
 @app.route('/repos')
-@cross_origin(supports_credentials=True,headers=['Content-Type','x-access-token'])
 def repos():
     res=scraper.scrape_repos()
     return jsonify(res)
-    
-
 
 
 if __name__ == '__main__':
