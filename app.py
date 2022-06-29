@@ -1,19 +1,21 @@
 #initialise flask
-
+from email import header
+import re
+from urllib import response
 from flask import Flask,jsonify,request,make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_cors import CORS, cross_origin
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime,timedelta
 from passlib.hash import sha256_crypt
 import jwt
 from  functools import wraps
+import boto3
 import scraper
+from werkzeug.utils import secure_filename
 
-
-ENV='development'
 
 
 
@@ -32,6 +34,7 @@ cors=CORS(app,resources={r"/*": {"origins": "*"}})
 app.config['CORS_HEADERS'] = ['Content-Type','x-access-token']
 
 
+
 #cors for cookies
 
 
@@ -40,7 +43,7 @@ app.config['CORS_HEADERS'] = ['Content-Type','x-access-token']
 
 basedir=os.path.abspath(os.path.dirname(__file__))
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://mvjctpxhhwxsoo:2d521b788593006a32d039d5641e43fa155539c98a3af06143421309b4dc7a7d@ec2-3-211-221-185.compute-1.amazonaws.com:5432/d5a1bv4l2p3kd3'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
 
 app.config['SECRET_KEY'] = 'thisissecret'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -85,12 +88,6 @@ class Comment(db.Model):
     blog_id=db.Column(db.Integer, nullable=False)
     created_at=db.Column(db.String, nullable=False)
     user=db.Column(db.String,default=None)
-    
-class repositorySchema(ma.Schema):
-    class Meta:
-        fields = ('title','link','description','language')
-        
-    
    
    
         
@@ -109,7 +106,6 @@ class BlogSchema(ma.Schema):
         fields = ('id','title','content','user_id','created_at','updated_at','thumbnail','Author','Authur_pic','publish')
 
 #single user schema object
-repo_schema = repositorySchema(many=True)
 user_schema = UserSchema()
 blog_schema = BlogSchema()
 users_schema = UserSchema(many=True)
@@ -292,21 +288,11 @@ def get_current_user(current_user):
 
 @app.route('/repos')
 @cross_origin(supports_credentials=True,headers=['Content-Type','x-access-token'])
-
 def repos():
-    try:
-        res=scraper.scrape_repos()
-        print(res)
-        return repo_schema.jsonify(res)
-    except:
-        return make_response("Error",500,{"message":"unable to crawl github"})
-    
-       
+    res=scraper.scrape_repos()
+    return jsonify(res)
     
 
-    
-        
-    
 
 
 if __name__ == '__main__':
