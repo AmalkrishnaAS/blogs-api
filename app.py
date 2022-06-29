@@ -1,20 +1,17 @@
 #initialise flask
-from email import header
-import re
-from urllib import response
+
 from flask import Flask,jsonify,request,make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_cors import CORS, cross_origin
 import os
 import uuid
-from datetime import datetime,timedelta
+from datetime import datetime
 from passlib.hash import sha256_crypt
 import jwt
 from  functools import wraps
-import boto3
+import scraper
 
-from werkzeug.utils import secure_filename
 
 ENV='development'
 
@@ -88,6 +85,12 @@ class Comment(db.Model):
     blog_id=db.Column(db.Integer, nullable=False)
     created_at=db.Column(db.String, nullable=False)
     user=db.Column(db.String,default=None)
+    
+class repositorySchema(ma.Schema):
+    class Meta:
+        fields = ('title','link','description','language')
+        
+    
    
    
         
@@ -106,6 +109,7 @@ class BlogSchema(ma.Schema):
         fields = ('id','title','content','user_id','created_at','updated_at','thumbnail','Author','Authur_pic','publish')
 
 #single user schema object
+repo_schema = repositorySchema(many=True)
 user_schema = UserSchema()
 blog_schema = BlogSchema()
 users_schema = UserSchema(many=True)
@@ -178,7 +182,7 @@ def login_user():
     if not user:
         return jsonify({"message":"User does not exist"})
     if user and sha256_crypt.verify(data['password'],user.password):
-        token=jwt.encode({'public_id':user.public_id,'exp':datetime.now()+timedelta(minutes=120)},app.config['SECRET_KEY'])
+        token=jwt.encode({'public_id':user.public_id},app.config['SECRET_KEY'])
         return jsonify({'token':token.decode('UTF-8')})
     return jsonify({"message":"Invalid credentials"})
 
@@ -285,6 +289,24 @@ def get_all_comments(id):
 @token_required
 def get_current_user(current_user):
     return user_schema.jsonify(current_user)
+
+@app.route('/repos')
+@cross_origin(supports_credentials=True,headers=['Content-Type','x-access-token'])
+
+def repos():
+    try:
+        res=scraper.scrape_repos()
+        print(res)
+        return repo_schema.jsonify(res)
+    except:
+        return make_response("Error",500,{"message":"unable to crawl github"})
+    
+       
+    
+
+    
+        
+    
 
 
 if __name__ == '__main__':
