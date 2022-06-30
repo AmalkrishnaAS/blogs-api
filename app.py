@@ -44,7 +44,7 @@ app.config['CORS_HEADERS'] = ['Content-Type','x-access-token']
 
 basedir=os.path.abspath(os.path.dirname(__file__))
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///' + os.path.join(basedir, 'db.sqlite'))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://rzwrkvwfpulmpa:702a335878e9b108eef329d869f5cbc9def19ee4e173d369e907420417222cf1@ec2-44-197-128-108.compute-1.amazonaws.com:5432/d81qbupiejmhl3'
 
 app.config['SECRET_KEY'] = 'thisissecret'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
